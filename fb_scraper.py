@@ -110,10 +110,12 @@ class StealthFacebookScraper:
 
         self.page.locator('input[name="email"]').fill(self.email)
         self.human_delay(0.8, 1.5)
-        self.page.locator('input[name="pass"]').fill(self.password)
+        
+        # نستخدم الضغط على زر Enter بدلاً من البحث عن زر تسجيل الدخول لتجنب مشاكل تغير تصميم فيسبوك
+        password_input = self.page.locator('input[name="pass"]')
+        password_input.fill(self.password)
         self.human_delay(1, 2)
-
-        self.page.locator('button[name="login"]').click()
+        password_input.press("Enter")
         self.human_delay(6, 10)
 
         # حفظ الـ session
