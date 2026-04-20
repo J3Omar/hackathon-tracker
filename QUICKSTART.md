@@ -26,6 +26,8 @@ nano .env
 - `FB_PASSWORD` - كلمة المرور
 - `TELEGRAM_BOT_TOKEN` - من BotFather
 - `TELEGRAM_CHAT_ID` - من userinfobot
+- `SMTP_USERNAME` و `SMTP_PASSWORD` - لإرسال الإيميلات (App Password)
+- `TARGET_EMAILS` - الإيميلات التي ستستقبل الإشعارات
 
 ### 4️⃣ تشغيل LM Studio
 1. افتح LM Studio
@@ -41,9 +43,11 @@ python3 main.py
 
 ### 6️⃣ تفعيل الجدولة التلقائية
 
-**الطريقة السهلة:**
+**الطريقة السهلة (Cron Job):**
 ```bash
-nohup python3 scheduler.py > logs/scheduler.log 2>&1 &
+crontab -e
+# أضف هذا السطر ليعمل النظام كل نصف ساعة (للتعويض لو كان الجهاز مغلقاً)
+*/30 * * * * cd /home/your_username/hackathon-tracker && source venv/bin/activate && python3 main.py --wait-until 22:00 >> logs/cron.log 2>&1
 ```
 
 **الطريقة الاحترافية (Systemd):**

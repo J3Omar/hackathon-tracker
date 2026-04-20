@@ -6,8 +6,8 @@
 
 - ✅ **مراقبة تلقائية** لصفحات الفيسبوك
 - 🤖 **تحليل ذكي** باستخدام Gemma 3 عبر LM Studio
-- 📱 **إشعارات فورية** عبر Telegram
-- 🗓️ **جدولة يومية** تلقائية
+- 📱 **إشعارات فورية** عبر Telegram و البريد الإلكتروني (Email)
+- 🗓️ **جدولة يومية و تعويضية** تلقائية (تعمل حتى لو كان الجهاز مغلقاً وقت الإرسال)
 - 🎯 **تصفية ذكية** حسب الموقع والتاريخ
 - 💾 **تجنب التكرار** بحفظ المنشورات المعروضة
 
@@ -21,6 +21,7 @@
 ### الحسابات المطلوبة
 1. **حساب فيسبوك احتياطي** (للتصفح الآلي)
 2. **Telegram Bot** للإشعارات
+3. **حساب Gmail (App Password)** لإرسال البريد الإلكتروني
 
 ## 📦 التثبيت
 
@@ -47,7 +48,14 @@ FB_PASSWORD=your_password
 
 # Telegram Bot
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
-TELEGRAM_CHAT_ID=123456789
+TELEGRAM_CHAT_ID=123456789,987654321
+
+# Email Configuration
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your_email@gmail.com
+SMTP_PASSWORD=your_app_password
+TARGET_EMAILS=email1@example.com,email2@example.com
 
 # LM Studio (افتراضياً)
 LM_STUDIO_URL=http://localhost:1234/v1/chat/completions
@@ -123,16 +131,18 @@ nohup python3 scheduler.py > logs/scheduler.log 2>&1 &
 pkill -f scheduler.py
 ```
 
-### الطريقة 2: استخدام Cron Job
+### الطريقة 2: استخدام Cron Job (موصى بها)
+
+تتميز هذه الطريقة بميزة **التعويض (Catch-up)**. سيحاول النظام العمل كل نصف ساعة، وإذا اكتشف أنه لم يرسل تقرير اليوم، سيرسله فوراً.
 
 1. افتح crontab:
 ```bash
 crontab -e
 ```
 
-2. أضف السطر التالي (للتشغيل يومياً الساعة 10 مساءً):
+2. أضف السطر التالي:
 ```bash
-0 22 * * * cd /home/your_username/hackathon-tracker && /home/your_username/hackathon-tracker/venv/bin/python3 main.py >> logs/cron.log 2>&1
+*/30 * * * * cd /home/your_username/hackathon-tracker && source venv/bin/activate && python3 main.py --wait-until 22:00 >> logs/cron.log 2>&1
 ```
 
 تأكد من تغيير `your_username` باسم المستخدم الخاص بك.
@@ -226,7 +236,8 @@ hackathon-tracker/
 ├── setup.sh                 # سكريبت التثبيت
 ├── fb_scraper.py            # وحدة تصفح فيسبوك
 ├── gemma_analyzer.py        # وحدة التحليل بـ Gemma
-├── telegram_notifier.py     # وحدة الإشعارات
+├── telegram_notifier.py     # وحدة الإشعارات (تليجرام)
+├── email_notifier.py        # وحدة الإشعارات (إيميل)
 ├── main.py                  # السكريبت الرئيسي
 ├── scheduler.py             # الجدولة التلقائية
 └── README.md                # هذا الملف
