@@ -4,12 +4,13 @@
 
 ## 📋 المميزات
 
-- ✅ **مراقبة تلقائية** لصفحات الفيسبوك
+- ✅ **مراقبة تلقائية** لصفحات الفيسبوك بتخفٍ عالٍ (Stealth Mode)
 - 🤖 **تحليل ذكي** باستخدام Gemma 3 عبر LM Studio
 - 📱 **إشعارات فورية** عبر Telegram و البريد الإلكتروني (Email)
 - 🗓️ **جدولة يومية و تعويضية** تلقائية (تعمل حتى لو كان الجهاز مغلقاً وقت الإرسال)
 - 🎯 **تصفية ذكية** حسب الموقع والتاريخ
-- 💾 **تجنب التكرار** بحفظ المنشورات المعروضة
+- 🛡️ **تخطي الحظر** بمحاكاة السلوك البشري ودعم الـ Proxies
+- 💾 **تجنب التكرار** بحفظ المنشورات المعروضة (Persistent Sessions)
 
 ## 🛠️ المتطلبات
 
@@ -45,6 +46,7 @@ chmod +x setup.sh
 # Facebook Credentials
 FB_EMAIL=your_backup_account@example.com
 FB_PASSWORD=your_password
+FB_PROXY=http://user:pass@ip:port  # اختياري لتخطي الحظر
 
 # Telegram Bot
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz

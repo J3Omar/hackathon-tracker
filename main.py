@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 
-from fb_scraper import FacebookScraper
+from fb_scraper import StealthFacebookScraper
 from gemma_analyzer import GemmaAnalyzer
 from telegram_notifier import TelegramNotifier
 from email_notifier import EmailNotifier
@@ -41,6 +41,7 @@ class HackathonTracker:
         # Initialize components
         self.fb_email = os.getenv('FB_EMAIL')
         self.fb_password = os.getenv('FB_PASSWORD')
+        self.fb_proxy = os.getenv('FB_PROXY')
         self.telegram_token = os.getenv('TELEGRAM_BOT_TOKEN')
         self.telegram_chat_id = os.getenv('TELEGRAM_CHAT_ID')
         self.lm_studio_url = os.getenv('LM_STUDIO_URL')
@@ -88,10 +89,15 @@ class HackathonTracker:
         """Scrape posts from Facebook"""
         all_posts = []
         
-        with FacebookScraper(
+        if not self.target_pages and not self.search_keywords:
+            logger.warning("No TARGET_PAGES or SEARCH_KEYWORDS defined in .env.")
+            return []
+            
+        with StealthFacebookScraper(
             self.fb_email, 
             self.fb_password, 
-            headless=self.config['scraping']['headless']
+            headless=self.config['scraping']['headless'],
+            proxy=self.fb_proxy
         ) as scraper:
             
             # Login
@@ -102,26 +108,24 @@ class HackathonTracker:
                 return []
             
             # Method 1: Search by keywords
-            logger.info("Searching by keywords...")
-            for keyword in self.search_keywords:
-                if scraper.search_keyword(keyword):
-                    posts = scraper.scroll_and_collect(
-                        max_posts=self.config['scraping']['max_posts_per_page'],
-                        scroll_delay=self.config['scraping']['scroll_delay']
-                    )
-                    all_posts.extend(posts)
-                    logger.info(f"Found {len(posts)} posts for keyword '{keyword}'")
+            if self.search_keywords:
+                logger.info("Searching by keywords...")
+                for keyword in self.search_keywords:
+                    if scraper.search_keyword(keyword):
+                        posts = scraper.scroll_and_collect(
+                            max_posts=self.config['scraping']['max_posts_per_page'],
+                            scroll_delay=self.config['scraping']['scroll_delay']
+                        )
+                        all_posts.extend(posts)
             
-            # Method 2: Scrape specific pages (if provided)
+            # Method 2: Scrape specific pages
             if self.target_pages:
                 logger.info("Scraping target pages...")
-                for page_url in self.target_pages:
-                    posts = scraper.scrape_page(
-                        page_url,
-                        max_posts=self.config['scraping']['max_posts_per_page']
-                    )
-                    all_posts.extend(posts)
-                    logger.info(f"Found {len(posts)} posts from {page_url}")
+                pages_posts = scraper.scrape_pages(
+                    self.target_pages,
+                    max_posts=self.config['scraping']['max_posts_per_page']
+                )
+                all_posts.extend(pages_posts)
         
         # Remove duplicates based on URL
         unique_posts = {post['url']: post for post in all_posts}.values()

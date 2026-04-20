@@ -50,32 +50,29 @@ class GemmaAnalyzer:
     def analyze_post(self, post_text):
         """Analyze a post to determine if it's a hackathon"""
         
-        prompt = f"""أنت محلل ذكي متخصص في تحليل منشورات الفيسبوك لاكتشاف الهاكاثونات والمسابقات البرمجية.
+        prompt = f"""أنت محلل هاكاثونات مصري محترف. حلل النص التالي وأجب دائماً بـ JSON صالح فقط بدون أي نص إضافي:
 
 النص المراد تحليله:
 {post_text}
 
-المطلوب: حلل النص وأجب بصيغة JSON فقط (بدون أي نص إضافي) كالتالي:
-
+المطلوب:
 {{
   "is_hackathon": true/false,
-  "confidence": 0.0-1.0,
-  "event_name": "اسم الهاكاثون أو null",
-  "event_date": "التاريخ بصيغة YYYY-MM-DD أو null",
-  "location": "المكان أو null",
-  "deadline": "آخر موعد للتسجيل YYYY-MM-DD أو null",
-  "prizes": "الجوائز أو null",
-  "requirements": "المتطلبات أو null",
-  "reasoning": "سبب التصنيف"
+  "title": "اسم الفعالية",
+  "date": "التاريخ بصيغة YYYY-MM-DD",
+  "time": "الوقت",
+  "location": "المكان",
+  "prizes": "الجوائز",
+  "registration_deadline": "آخر موعد للتسجيل YYYY-MM-DD",
+  "registration_link": "رابط التسجيل إن وجد",
+  "organizer": "الجهة المنظمة",
+  "is_near_zagazig": true/false,
+  "confidence": 0.0-1.0
 }}
 
 قواعد التحليل:
-- is_hackathon = true إذا كان المنشور عن مسابقة برمجية، هاكاثون، competition، أو challenge
-- confidence = درجة الثقة من 0 إلى 1
-- استخرج التواريخ بدقة (مثال: "15 مايو" = "2025-05-15")
-- location قد يكون مدينة، جامعة، أو "online"
-- إذا لم تجد معلومة، ضع null
-
+- is_near_zagazig = true إذا كان المكان في مصر ويمكن الوصول إليه بالسيارة من مدينة "الزقازيق" في أقل من 3 ساعات (مثل: القاهرة، المنصورة، الإسماعيلية، بنها، العاشر من رمضان) أو إذا كان الحدث "Online/أونلاين". أما إذا كان بعيداً (مثل الإسكندرية أو أسوان) أو خارج مصر اجعله false.
+- ضع null لأي حقل نصي غير موجود.
 أجب بـ JSON فقط:"""
 
         response = self.call_gemma(prompt, temperature=0.3)
@@ -92,9 +89,9 @@ class GemmaAnalyzer:
                 
                 analysis = json.loads(response)
                 
-                # Add location relevance check
+                # Add location relevance check is now handled via Gemma directly and _is_location_relevant
                 analysis['location_relevant'] = self._is_location_relevant(
-                    analysis.get('location', '')
+                    analysis.get('location', ''), analysis
                 )
                 
                 return analysis
@@ -106,17 +103,22 @@ class GemmaAnalyzer:
         
         return None
     
-    def _is_location_relevant(self, location):
-        """Check if location matches target keywords"""
+    def _is_location_relevant(self, location, analysis):
+        """Check if location matches target keywords or is near Zagazig"""
+        # أولاً: نعتمد على ذكاء Gemma الجغرافي
+        is_near = analysis.get('is_near_zagazig')
+        if is_near is True:
+            return True
+            
+        # ثانياً: فلترة احتياطية بالكلمات المفتاحية
         if not location or not self.location_keywords:
-            return True  # If no filter, all locations are relevant
+            return True
         
         location_lower = location.lower()
         for keyword in self.location_keywords:
             if keyword.lower() in location_lower:
                 return True
         
-        # Also accept "online" events
         if 'online' in location_lower or 'أونلاين' in location_lower:
             return True
         
@@ -139,13 +141,13 @@ class GemmaAnalyzer:
                 continue
             
             # Check if location is relevant
-            if not analysis.get('location_relevant', True):
-                logger.info(f"Skipping post - location not relevant: {analysis.get('location')}")
+            if not self._is_location_relevant(analysis.get('location', ''), analysis):
+                logger.info(f"Skipping post - location not relevant/too far: {analysis.get('location')}")
                 continue
             
             # Check if event is in the future
-            event_date_str = analysis.get('event_date')
-            if event_date_str:
+            event_date_str = analysis.get('date')
+            if event_date_str and event_date_str != 'null':
                 try:
                     event_date = datetime.strptime(event_date_str, '%Y-%m-%d').date()
                     if event_date < today or event_date > future_limit:

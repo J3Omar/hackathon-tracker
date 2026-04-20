@@ -54,11 +54,15 @@ class TelegramNotifier:
         message_parts.append("🚀 *هاكاثون جديد!*\n")
         
         # Event name
-        event_name = analysis.get('event_name', 'غير محدد')
+        event_name = analysis.get('title', 'غير محدد')
         message_parts.append(f"*{event_name}*\n")
         
+        organizer = analysis.get('organizer', 'غير محدد')
+        if organizer and organizer != 'null':
+            message_parts.append(f"🏢 *الجهة المنظمة:* {organizer}\n")
+        
         # Event details
-        event_date = analysis.get('event_date', 'غير محدد')
+        event_date = analysis.get('date', 'غير محدد')
         if event_date and event_date != 'null':
             try:
                 date_obj = datetime.strptime(event_date, '%Y-%m-%d')
@@ -66,12 +70,16 @@ class TelegramNotifier:
                 message_parts.append(f"📅 *التاريخ:* {formatted_date}")
             except:
                 message_parts.append(f"📅 *التاريخ:* {event_date}")
+                
+        event_time = analysis.get('time', 'غير محدد')
+        if event_time and event_time != 'null':
+            message_parts.append(f"⏱️ *الوقت:* {event_time}")
         
         location = analysis.get('location', 'غير محدد')
         if location and location != 'null':
             message_parts.append(f"📍 *المكان:* {location}")
         
-        deadline = analysis.get('deadline', 'غير محدد')
+        deadline = analysis.get('registration_deadline', 'غير محدد')
         if deadline and deadline != 'null':
             try:
                 deadline_obj = datetime.strptime(deadline, '%Y-%m-%d')
@@ -84,18 +92,19 @@ class TelegramNotifier:
         if prizes and prizes != 'null':
             message_parts.append(f"💰 *الجوائز:* {prizes}")
         
-        requirements = analysis.get('requirements')
-        if requirements and requirements != 'null':
-            message_parts.append(f"📋 *المتطلبات:* {requirements}")
-        
         # Confidence score
         confidence = analysis.get('confidence', 0)
         message_parts.append(f"\n📊 *درجة الثقة:* {confidence*100:.0f}%")
         
         # Post link
         post_url = post.get('url', '')
+        reg_link = analysis.get('registration_link', '')
+        
+        if reg_link and reg_link != 'null':
+            message_parts.append(f"\n🔗 [رابط التسجيل]({reg_link})")
+            
         if post_url:
-            message_parts.append(f"\n🔗 [رابط المنشور]({post_url})")
+            message_parts.append(f"\n🔗 [رابط المنشور الأصلي]({post_url})")
         
         # Footer
         message_parts.append("\n━━━━━━━━━━━━━━━━")
@@ -164,16 +173,17 @@ def test_notifier():
     if notifier.test_connection():
         print("✅ Connection successful!")
         
-        # Test hackathon message
         test_post = {
             'url': 'https://facebook.com/test',
             'analysis': {
-                'event_name': 'GDG Delta Hackathon 2025',
-                'event_date': '2025-05-15',
+                'title': 'GDG Delta Hackathon 2025',
+                'organizer': 'GDG Delta',
+                'date': '2025-05-15',
+                'time': '10:00 AM',
                 'location': 'جامعة الزقازيق',
-                'deadline': '2025-05-01',
+                'registration_deadline': '2025-05-01',
                 'prizes': '10,000 جنيه',
-                'requirements': 'فرق من 3-5 أفراد',
+                'registration_link': 'https://forms.gle/test',
                 'confidence': 0.95
             }
         }

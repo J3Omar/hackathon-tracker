@@ -31,24 +31,31 @@ class EmailNotifier:
         
         for post in hackathons:
             analysis = post.get('analysis', {})
-            event_name = analysis.get('event_name', 'غير محدد')
-            event_date = analysis.get('event_date', 'غير محدد')
+            event_name = analysis.get('title', 'غير محدد')
+            event_date = analysis.get('date', 'غير محدد')
+            event_time = analysis.get('time', 'غير محدد')
             location = analysis.get('location', 'غير محدد')
-            deadline = analysis.get('deadline', 'غير محدد')
+            deadline = analysis.get('registration_deadline', 'غير محدد')
             prizes = analysis.get('prizes', 'غير محدد')
-            requirements = analysis.get('requirements', 'غير محدد')
+            organizer = analysis.get('organizer', 'غير محدد')
+            reg_link = analysis.get('registration_link', '#')
             confidence = analysis.get('confidence', 0)
             url = post.get('url', '#')
             
             html += f"<h3 style='color: #e74c3c;'>{event_name}</h3>"
             html += "<ul style='list-style-type: none; padding-right: 0;'>"
+            html += f"<li><b>🏢 الجهة المنظمة:</b> {organizer}</li>"
             html += f"<li><b>📅 التاريخ:</b> {event_date}</li>"
+            html += f"<li><b>⏱️ الوقت:</b> {event_time}</li>"
             html += f"<li><b>📍 المكان:</b> {location}</li>"
-            html += f"<li><b>⏰ آخر موعد:</b> {deadline}</li>"
+            html += f"<li><b>⏰ آخر موعد للتسجيل:</b> {deadline}</li>"
             html += f"<li><b>💰 الجوائز:</b> {prizes}</li>"
-            html += f"<li><b>📋 المتطلبات:</b> {requirements}</li>"
             html += f"<li><b>📊 درجة الثقة:</b> {confidence*100:.0f}%</li>"
-            html += f"<li style='margin-top: 10px;'><b>🔗 <a href='{url}' style='color: #3498db; text-decoration: none;'>رابط المنشور الأصلي</a></b></li>"
+            
+            if reg_link and reg_link != 'null' and reg_link != '#':
+                html += f"<li style='margin-top: 10px;'><b>🔗 <a href='{reg_link}' style='color: #27ae60; text-decoration: none;'>رابط التسجيل</a></b></li>"
+                
+            html += f"<li style='margin-top: 5px;'><b>🔗 <a href='{url}' style='color: #3498db; text-decoration: none;'>رابط المنشور الأصلي</a></b></li>"
             html += "</ul><hr>"
             
         html += "</div>"
