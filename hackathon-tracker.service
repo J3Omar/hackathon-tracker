@@ -1,0 +1,21 @@
+[Unit]
+Description=Hackathon Tracker - Automated Facebook Scraper with Gemma 3
+After=network.target
+
+[Service]
+Type=simple
+User=REPLACE_WITH_YOUR_USERNAME
+WorkingDirectory=/home/REPLACE_WITH_YOUR_USERNAME/hackathon-tracker
+ExecStart=/home/REPLACE_WITH_YOUR_USERNAME/hackathon-tracker/venv/bin/python3 scheduler.py
+Restart=always
+RestartSec=10
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+
+# Logging
+StandardOutput=append:/home/REPLACE_WITH_YOUR_USERNAME/hackathon-tracker/logs/systemd.log
+StandardError=append:/home/REPLACE_WITH_YOUR_USERNAME/hackathon-tracker/logs/systemd-error.log
+
+[Install]
+WantedBy=multi-user.target

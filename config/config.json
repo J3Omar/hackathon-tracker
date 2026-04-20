@@ -1,0 +1,25 @@
+{
+  "schedule": {
+    "daily_run_time": "22:00",
+    "timezone": "Africa/Cairo"
+  },
+  "scraping": {
+    "max_posts_per_page": 20,
+    "scroll_delay": 2,
+    "headless": true
+  },
+  "gemma": {
+    "model": "gemma-3",
+    "temperature": 0.3,
+    "max_tokens": 1000
+  },
+  "filters": {
+    "days_ahead": 60,
+    "min_confidence": 0.6
+  },
+  "data": {
+    "posts_file": "data/posts.json",
+    "seen_posts_file": "data/seen_posts.json",
+    "logs_dir": "logs"
+  }
+}
