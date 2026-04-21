@@ -159,8 +159,10 @@ class HackathonTracker:
     def run_daily_check(self, wait_until_time=None):
         """Run the complete daily check workflow"""
         try:
+            now = datetime.now()
+            today = now.strftime('%Y-%m-%d')
+            
             # Check if already run today
-            today = datetime.now().strftime('%Y-%m-%d')
             if self.last_run_file.exists():
                 with open(self.last_run_file, 'r') as f:
                     last_run = f.read().strip()
@@ -168,9 +170,14 @@ class HackathonTracker:
                     logger.info("Already ran today. Exiting.")
                     return
             
+            # Ensure it only runs at night (after 9:30 PM = 21:30)
+            if now.hour < 21 or (now.hour == 21 and now.minute < 30):
+                logger.info("Too early. Waiting until 9:30 PM to run the check.")
+                return
+            
             logger.info("=" * 50)
             logger.info("Starting daily hackathon check...")
-            logger.info(f"Time: {datetime.now()}")
+            logger.info(f"Time: {now}")
             logger.info("=" * 50)
             
             # Load seen posts
