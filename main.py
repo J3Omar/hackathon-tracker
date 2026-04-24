@@ -35,8 +35,15 @@ class HackathonTracker:
         load_dotenv()
         
         # Load configuration
-        with open('config/config.json', 'r', encoding='utf-8') as f:
-            self.config = json.load(f)
+        try:
+            with open('config/config.json', 'r', encoding='utf-8') as f:
+                self.config = json.load(f)
+        except FileNotFoundError:
+            logger.critical("config/config.json not found — run setup.sh first")
+            raise
+        except json.JSONDecodeError as e:
+            logger.critical(f"config/config.json is malformed: {e}")
+            raise
         
         # Initialize components
         self.fb_email = os.getenv('FB_EMAIL')
@@ -156,14 +163,14 @@ class HackathonTracker:
         logger.info(f"New posts: {len(new_posts)} out of {len(posts)}")
         return new_posts
     
-    def run_daily_check(self, wait_until_time=None):
+    def run_daily_check(self, wait_until_time=None, skip_scraping=False):
         """Run the complete daily check workflow"""
         try:
             now = datetime.now()
             today = now.strftime('%Y-%m-%d')
             
             # Check if already run today
-            if self.last_run_file.exists():
+            if self.last_run_file.exists() and not skip_scraping:
                 with open(self.last_run_file, 'r') as f:
                     last_run = f.read().strip()
                 if last_run == today:
@@ -172,8 +179,9 @@ class HackathonTracker:
             
             # Ensure it only runs at night (after 9:30 PM = 21:30)
             if now.hour < 21 or (now.hour == 21 and now.minute < 30):
-                logger.info("Too early. Waiting until 9:30 PM to run the check.")
-                return
+                if not skip_scraping:
+                    logger.info("Too early. Waiting until 9:30 PM to run the check.")
+                    return
             
             logger.info("=" * 50)
             logger.info("Starting daily hackathon check...")
@@ -184,25 +192,42 @@ class HackathonTracker:
             seen_posts = self.load_seen_posts()
             logger.info(f"Previously seen posts: {len(seen_posts)}")
             
-            # Step 1: Scrape posts
-            logger.info("\n[1/4] Scraping Facebook posts...")
-            all_posts = self.scrape_posts()
+            raw_posts_file = Path('data/raw_new_posts.json')
             
-            if not all_posts:
-                logger.warning("No posts found")
-                self.notifier.send_message("⚠️ لم يتم العثور على منشورات جديدة")
-                self.email_notifier.send_error_notification("لم يتم العثور على أي منشورات جديدة من فيسبوك اليوم.")
-                return
-            
-            # Step 2: Filter new posts
-            logger.info("\n[2/4] Filtering new posts...")
-            new_posts = self.filter_new_posts(all_posts, seen_posts)
-            
-            if not new_posts:
-                logger.info("No new posts to analyze")
-                self.notifier.send_message("✅ تم فحص المنشورات - لا توجد منشورات جديدة")
-                self.email_notifier.send_error_notification("تم فحص المنشورات - لا توجد منشورات جديدة اليوم.")
-                return
+            if skip_scraping:
+                logger.info("\n[1-2/4] Skipping scraping, loading from raw_new_posts.json...")
+                if raw_posts_file.exists():
+                    with open(raw_posts_file, 'r', encoding='utf-8') as f:
+                        new_posts = json.load(f)
+                    all_posts = new_posts # For updating seen_posts later
+                else:
+                    logger.error("raw_new_posts.json not found! Cannot skip scraping.")
+                    return
+            else:
+                # Step 1: Scrape posts
+                logger.info("\n[1/4] Scraping Facebook posts...")
+                all_posts = self.scrape_posts()
+                
+                if not all_posts:
+                    logger.warning("No posts found")
+                    self.notifier.send_message("⚠️ لم يتم العثور على منشورات جديدة")
+                    self.email_notifier.send_error_notification("لم يتم العثور على أي منشورات جديدة من فيسبوك اليوم.")
+                    return
+                
+                # Step 2: Filter new posts
+                logger.info("\n[2/4] Filtering new posts...")
+                new_posts = self.filter_new_posts(all_posts, seen_posts)
+                
+                if not new_posts:
+                    logger.info("No new posts to analyze")
+                    self.notifier.send_message("✅ تم فحص المنشورات - لا توجد منشورات جديدة")
+                    self.email_notifier.send_error_notification("تم فحص المنشورات - لا توجد منشورات جديدة اليوم.")
+                    return
+                
+                # Backup new_posts to disk in case analysis fails
+                logger.info(f"Saving {len(new_posts)} raw posts to disk for backup...")
+                with open(raw_posts_file, 'w', encoding='utf-8') as f:
+                    json.dump(new_posts, f, indent=2, ensure_ascii=False)
             
             # Step 3: Analyze posts
             logger.info(f"\n[3/4] Analyzing {len(new_posts)} new posts with Gemma 3...")

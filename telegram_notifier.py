@@ -44,71 +44,83 @@ class TelegramNotifier:
         return overall_success
     
     def format_hackathon_message(self, post):
-        """Format a hackathon post into a nice Telegram message"""
+        """Format a hackathon post into a Telegram message."""
         analysis = post.get('analysis', {})
-        
-        # Build the message
         message_parts = []
-        
-        # Header with emoji
+
+        # Header
         message_parts.append("🚀 *هاكاثون جديد!*\n")
-        
-        # Event name
-        event_name = analysis.get('title', 'غير محدد')
+
+        event_name = analysis.get('title') or 'غير محدد'
         message_parts.append(f"*{event_name}*\n")
-        
-        organizer = analysis.get('organizer', 'غير محدد')
+
+        organizer = analysis.get('organizer')
         if organizer and organizer != 'null':
-            message_parts.append(f"🏢 *الجهة المنظمة:* {organizer}\n")
-        
-        # Event details
-        event_date = analysis.get('date', 'غير محدد')
+            message_parts.append(f"🏢 *الجهة المنظمة:* {organizer}")
+
+        description = analysis.get('description')
+        if description and description != 'null':
+            message_parts.append(f"📝 *الوصف:* {description}")
+
+        event_date = analysis.get('date')
         if event_date and event_date != 'null':
             try:
                 date_obj = datetime.strptime(event_date, '%Y-%m-%d')
                 formatted_date = date_obj.strftime('%d %B %Y')
                 message_parts.append(f"📅 *التاريخ:* {formatted_date}")
-            except:
+            except Exception:
                 message_parts.append(f"📅 *التاريخ:* {event_date}")
-                
-        event_time = analysis.get('time', 'غير محدد')
+
+        event_time = analysis.get('time')
         if event_time and event_time != 'null':
             message_parts.append(f"⏱️ *الوقت:* {event_time}")
-        
-        location = analysis.get('location', 'غير محدد')
+
+        location = analysis.get('location')
+        online_or_onsite = analysis.get('online_or_onsite', 'unknown')
         if location and location != 'null':
-            message_parts.append(f"📍 *المكان:* {location}")
-        
-        deadline = analysis.get('registration_deadline', 'غير محدد')
+            message_parts.append(f"📍 *المكان:* {location} ({online_or_onsite})")
+        elif online_or_onsite == 'online':
+            message_parts.append("📍 *المكان:* أونلاين 🌐")
+
+        dist = analysis.get('distance_from_zagazig_km')
+        if dist is not None:
+            message_parts.append(f"📏 *المسافة من الزقازيق:* {dist} كم")
+
+        team_size = analysis.get('team_size')
+        if team_size and team_size != 'null':
+            message_parts.append(f"👥 *حجم الفريق:* {team_size}")
+
+        eligibility = analysis.get('eligibility')
+        if eligibility and eligibility != 'null':
+            message_parts.append(f"🎯 *الشروط:* {eligibility}")
+
+        deadline = analysis.get('registration_deadline')
         if deadline and deadline != 'null':
             try:
                 deadline_obj = datetime.strptime(deadline, '%Y-%m-%d')
                 formatted_deadline = deadline_obj.strftime('%d %B %Y')
                 message_parts.append(f"⏰ *آخر موعد:* {formatted_deadline}")
-            except:
+            except Exception:
                 message_parts.append(f"⏰ *آخر موعد:* {deadline}")
-        
+
         prizes = analysis.get('prizes')
         if prizes and prizes != 'null':
             message_parts.append(f"💰 *الجوائز:* {prizes}")
-        
-        # Confidence score
+
         confidence = analysis.get('confidence', 0)
-        message_parts.append(f"\n📊 *درجة الثقة:* {confidence*100:.0f}%")
-        
-        # Post link
-        post_url = post.get('url', '')
+        message_parts.append(f"\n📊 *درجة الثقة:* {confidence * 100:.0f}%")
+
         reg_link = analysis.get('registration_link', '')
-        
-        if reg_link and reg_link != 'null':
+        post_url = post.get('url', '')
+
+        if reg_link and reg_link != 'null' and reg_link.startswith('http'):
             message_parts.append(f"\n🔗 [رابط التسجيل]({reg_link})")
-            
-        if post_url:
-            message_parts.append(f"\n🔗 [رابط المنشور الأصلي]({post_url})")
-        
-        # Footer
+
+        if post_url and post_url.startswith('http'):
+            message_parts.append(f"🔗 [رابط المنشور الأصلي]({post_url})")
+
         message_parts.append("\n━━━━━━━━━━━━━━━━")
-        
+
         return "\n".join(message_parts)
     
     def send_daily_summary(self, hackathons):
